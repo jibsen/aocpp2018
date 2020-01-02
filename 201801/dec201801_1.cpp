@@ -1,3 +1,7 @@
+//
+// Advent of Code 2018, day 1, part one
+//
+
 #include <iostream>
 #include <iterator>
 #include <numeric>
