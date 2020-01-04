@@ -27,8 +27,7 @@ int main()
 	int num_appear_thrice = 0;
 
 	for (const auto &id : ids) {
-		std::array<int, 'z' - 'a' + 1> freq;
-		freq.fill(0);
+		std::array<int, 'z' - 'a' + 1> freq = {};
 
 		for (char ch : id) {
 			freq[ch - 'a']++;
