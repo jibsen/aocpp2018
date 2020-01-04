@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include <iterator>
-#include <numeric>
 #include <unordered_set>
 
 std::vector<int> read_frequency_changes()
@@ -12,9 +11,7 @@ std::vector<int> read_frequency_changes()
 	std::istream_iterator<int> it(std::cin);
 	std::istream_iterator<int> end;
 
-	std::vector<int> fcl;
-
-	std::copy(it, end, std::back_inserter(fcl));
+	std::vector<int> fcl(it, end);
 
 	return fcl;
 }
