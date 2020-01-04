@@ -68,6 +68,19 @@ std::map<int, SleepSchedule> get_guard_sleep_schedules(const std::vector<Event> 
 	return schedules;
 }
 
+int minute_most_asleep(const SleepSchedule &schedule)
+{
+	std::array<int, 60> sleep_freq = {};
+
+	for (const auto &period : schedule) {
+		for (int i = period.first; i < period.second; ++i) {
+			sleep_freq[i]++;
+		}
+	}
+
+	return std::distance(sleep_freq.begin(), std::max_element(sleep_freq.begin(), sleep_freq.end()));
+}
+
 int main()
 {
 	auto events = read_events();
@@ -79,8 +92,11 @@ int main()
 	int max_time = std::numeric_limits<int>::min();
 	int max_guard = -1;
 
-	for (const auto &[guard, times] : schedules) {
-		int time = std::accumulate(times.begin(), times.end(), 0, [](int acc, const auto &p) { return acc + (p.second - p.first); });
+	for (const auto &[guard, schedule] : schedules) {
+		int time = std::accumulate(schedule.begin(), schedule.end(), 0,
+			[](int acc, const auto &period) {
+				return acc + (period.second - period.first);
+			});
 
 		if (time > max_time) {
 			max_time = time;
@@ -88,15 +104,7 @@ int main()
 		}
 	}
 
-	std::array<int, 60> minutes_asleep = {};
-
-	for (const auto &p : schedules[max_guard]) {
-		for (int i = p.first; i < p.second; ++i) {
-			minutes_asleep[i]++;
-		}
-	}
-
-	std::cout << max_guard * std::distance(minutes_asleep.begin(), std::max_element(minutes_asleep.begin(), minutes_asleep.end())) << '\n';
+	std::cout << max_guard * minute_most_asleep(schedules[max_guard]) << '\n';
 
 	return 0;
 }
