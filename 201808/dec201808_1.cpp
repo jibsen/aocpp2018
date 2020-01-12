@@ -6,7 +6,8 @@
 #include <iterator>
 #include <vector>
 
-std::pair<std::vector<int>::iterator, int> sum_metadata(std::vector<int>::iterator it)
+template<typename ForwardIt>
+std::pair<ForwardIt, int> sum_metadata(ForwardIt it)
 {
 	int num_children = *it++;
 	int num_metadata = *it++;

@@ -6,7 +6,8 @@
 #include <iterator>
 #include <vector>
 
-std::pair<std::vector<int>::iterator, int> compute_value(std::vector<int>::iterator it)
+template<typename ForwardIt>
+std::pair<ForwardIt, int> compute_value(ForwardIt it)
 {
 	int num_children = *it++;
 	int num_metadata = *it++;
