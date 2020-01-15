@@ -2,11 +2,39 @@
 // Advent of Code 2018, day 15, part one
 //
 
+// There are a lot of rules in this problem, and it is easy to end up making
+// an assumption that works on all the test cases provided, but fails on
+// the actual input.
+//
+// One such assumption is that BFS in NWES order would find the first path
+// in reading order. Consider this example:
+//
+//     ##########
+//     #...#....#
+//     #.#G..##.#
+//     #..###...#
+//     #G....E..#
+//     ##########
+//
+// For the fist G, the path going north and the path going east are both 10
+// moves away from a position adjacent to E. If we do a BFS in NWES order,
+// we will find the north path first, but the correct path is the east path
+// because it goes to the nearest position adjacent to E which is first in
+// reading order (the one north of E).
+//
+// So we have to find all nearest positions in the BFS, select the first in
+// reading order, and backtrack from that. We could also do a reverse BFS to
+// find all shortest paths back and select the first in reading order.
+//
+// The outcome for the above example should be 11320 in part one, and 550 in
+// part two.
+
 #include <algorithm>
 #include <iostream>
 #include <numeric>
 #include <queue>
 #include <string>
+#include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -67,54 +95,72 @@ bool is_enemy_adjacant(const std::vector<std::string> &map, const Unit &unit, in
 
 std::pair<int, int> find_best_move(const std::vector<std::string> &map, const Unit &unit)
 {
-	std::queue<std::pair<int, int>> queue;
+	std::queue<std::tuple<int, int, int>> queue;
 
 	std::unordered_map<std::pair<int, int>, std::pair<int, int>, PairHash> prev;
 
-	queue.push({unit.x, unit.y});
+	queue.push({unit.x, unit.y, 0});
+	prev[{unit.x, unit.y}] = {-1, -1};
+
+	std::vector<std::pair<int, int>> nearest;
+	int nearest_dist = std::numeric_limits<int>::max();
 
 	while (!queue.empty()) {
-		auto [x, y] = queue.front();
+		auto [x, y, dist] = queue.front();
 		queue.pop();
 
+		if (dist > nearest_dist) {
+			break;
+		}
+
 		if (is_enemy_adjacant(map, unit, x, y)) {
-			// Backtrack to find first move
-			for (;;) {
-				auto [prev_x, prev_y] = prev[{x, y}];
-
-				if (prev_x == unit.x && prev_y == unit.y) {
-					return {x, y};
-				}
-
-				x = prev_x;
-				y = prev_y;
-			}
+			nearest.push_back({y, x});
+			nearest_dist = dist;
+			continue;
 		}
 
 		// Continue search in NWES order so backtracking finds the
-		// correct move
+		// correct first move
 		if (map[y - 1][x] == '.') {
 			if (auto [it, success] = prev.insert({{x, y - 1}, {x, y}}); success) {
-				queue.push({x, y - 1});
+				queue.push({x, y - 1, dist + 1});
 			}
 		}
 
 		if (map[y][x - 1] == '.') {
 			if (auto [it, success] = prev.insert({{x - 1, y}, {x, y}}); success) {
-				queue.push({x - 1, y});
+				queue.push({x - 1, y, dist + 1});
 			}
 		}
 
 		if (map[y][x + 1] == '.') {
 			if (auto [it, success] = prev.insert({{x + 1, y}, {x, y}}); success) {
-				queue.push({x + 1, y});
+				queue.push({x + 1, y, dist + 1});
 			}
 		}
 
 		if (map[y + 1][x] == '.') {
 			if (auto [it, success] = prev.insert({{x, y + 1}, {x, y}}); success) {
-				queue.push({x, y + 1});
+				queue.push({x, y + 1, dist + 1});
 			}
+		}
+	}
+
+	if (!nearest.empty()) {
+		std::sort(nearest.begin(), nearest.end());
+
+		// Backtrack from first nearest in reading order
+		auto [y, x] = nearest.front();
+
+		for (;;) {
+			auto [prev_x, prev_y] = prev[{x, y}];
+
+			if (prev_x == unit.x && prev_y == unit.y) {
+				return {x, y};
+			}
+
+			x = prev_x;
+			y = prev_y;
 		}
 	}
 
