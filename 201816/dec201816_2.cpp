@@ -1,8 +1,9 @@
 //
-// Advent of Code 2018, day 16, part one
+// Advent of Code 2018, day 16, part two
 //
 
 #include <array>
+#include <cstdint>
 #include <cstdio>
 #include <iostream>
 #include <vector>
@@ -22,6 +23,8 @@ struct Sample {
 	Registers after = {};
 };
 
+using Program = std::vector<Instruction>;
+
 std::vector<Sample> read_samples()
 {
 	std::vector<Sample> samples;
@@ -36,6 +39,18 @@ std::vector<Sample> read_samples()
 	}
 
 	return samples;
+}
+
+Program read_program()
+{
+	Program program;
+	Instruction ins;
+
+	while (std::cin >> ins.opcode >> ins.a >> ins.b >> ins.c) {
+		program.push_back(ins);
+	}
+
+	return program;
 }
 
 Registers perform_instruction(int opcode, const Instruction &ins, Registers reg)
@@ -98,27 +113,94 @@ Registers perform_instruction(int opcode, const Instruction &ins, Registers reg)
 	return reg;
 }
 
+constexpr int count_bits_set(std::uint32_t v)
+{
+	int count = 0;
+
+	while (v != 0) {
+		v &= v - 1;
+		++count;
+	}
+
+	return count;
+}
+
+constexpr int lowest_bit_set(std::uint32_t v)
+{
+	if (v == 0) {
+		return 32;
+	}
+
+	int count = 0;
+
+	while ((v & 1U) == 0) {
+		v >>= 1;
+		++count;
+	}
+
+	return count;
+}
+
+std::vector<int> opcode_lookup_from_possibilities(std::vector<std::uint32_t> possibilities)
+{
+	std::vector<int> lookup(possibilities.size(), -1);
+
+	for (;;) {
+		// Find opcode with only one possible value
+		auto it = find_if(possibilities.begin(), possibilities.end(),
+		                  [](const auto &v) { return count_bits_set(v) == 1; });
+
+		if (it == possibilities.end()) {
+			break;
+		}
+
+		std::uint32_t mask = *it;
+		int value = lowest_bit_set(mask);
+
+		lookup[std::distance(possibilities.begin(), it)] = value;
+
+		// Remove that value from the possibilities of all opcodes
+		for (auto &v : possibilities) {
+			v &= ~mask;
+		}
+	}
+
+	return lookup;
+}
+
 int main()
 {
 	auto samples = read_samples();
 
 	std::cout << samples.size() << " samples read\n";
 
-	int num_matching_at_least_three = 0;
+	std::vector<std::uint32_t> possibilities(16, 0);
 
 	for (const auto &sample : samples) {
-		int num_possible = 0;
+		std::uint32_t mask = 0;
 
 		for (int opcode = 0; opcode < 16; ++opcode) {
 			if (perform_instruction(opcode, sample.ins, sample.before) == sample.after) {
-				++num_possible;
+				mask |= 1U << opcode;
 			}
 		}
 
-		num_matching_at_least_three += static_cast<int>(num_possible >= 3);
+		possibilities[sample.ins.opcode] |= mask;
 	}
 
-	std::cout << num_matching_at_least_three << " behave like three or more opcodes\n";
+	auto opcode_lookup = opcode_lookup_from_possibilities(possibilities);
+
+	auto program = read_program();
+
+	std::cout << program.size() << " instructions read\n";
+
+	Registers reg = {};
+
+	for (const auto &ins : program) {
+		reg = perform_instruction(opcode_lookup[ins.opcode], ins, reg);
+	}
+
+	std::cout << "register 0 = " << reg[0] << '\n';
 
 	return 0;
 }
